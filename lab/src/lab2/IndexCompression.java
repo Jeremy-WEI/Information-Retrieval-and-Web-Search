@@ -28,6 +28,9 @@ public class IndexCompression {
      */
     public static void gapEncode(int[] inputDocIdsOutputGaps) {
         // TODO: Fill in your code here
+        for (int i = inputDocIdsOutputGaps.length - 1; i > 0; i--) {
+            inputDocIdsOutputGaps[i] = inputDocIdsOutputGaps[i] - inputDocIdsOutputGaps[i - 1];
+        }
     }
 
     /**
@@ -45,6 +48,9 @@ public class IndexCompression {
      */
     public static void gapDecode(int[] inputGapsOutputDocIds) {
         // TODO: Fill in your code here
+        for (int i = 1; i < inputGapsOutputDocIds.length; i++) {
+            inputGapsOutputDocIds[i] = inputGapsOutputDocIds[i] + inputGapsOutputDocIds[i - 1];
+        }
     }
 
     /**
@@ -60,8 +66,18 @@ public class IndexCompression {
      * @return Number of bytes placed in outputVBCode.
      */
     public static int VBEncodeInteger(int gap, byte[] outputVBCode) {
-        int numBytes = 0;
+        int numBytes = 1;
         // TODO: Fill in your code here
+        int tmp = gap;
+        while (tmp > 127) {
+            tmp >>>= 7;
+            numBytes++;
+        }
+        for (int i = numBytes - 1; i >= 0; i--) {
+            outputVBCode[i] = (byte) (gap & 0b01111111);
+            gap >>>= 7;
+        }
+        outputVBCode[numBytes - 1] |= 0b10000000;
         return numBytes;
     }
 
@@ -86,6 +102,14 @@ public class IndexCompression {
      */
     public static void VBDecodeInteger(byte[] inputVBCode, int startIndex, int[] numberEndIndex) {
         // TODO: Fill in your code here
+        int number = 0;
+        while (true) {
+            number = (number << 7) + (inputVBCode[startIndex] & 0b01111111);
+            if ((inputVBCode[startIndex++] & 0b10000000) != 0) break;
+            if (startIndex >= inputVBCode.length) throw new IllegalArgumentException();
+        }
+        numberEndIndex[0] = number;
+        numberEndIndex[1] = startIndex;
     }
 
     /**
@@ -112,7 +136,11 @@ public class IndexCompression {
     public static int unaryEncodeInteger(int number, BitSet outputUnaryCode, int startIndex) {
         int nextIndex = startIndex;
         // TODO: Fill in your code here
-        return nextIndex;
+        while (number > 0) {
+            outputUnaryCode.set(nextIndex++);
+            number--;
+        }
+        return nextIndex + 1;
     }
 
     /**
@@ -132,6 +160,13 @@ public class IndexCompression {
      */
     public static void unaryDecodeInteger(BitSet inputUnaryCode, int startIndex, int[] numberEndIndex) {
         // TODO: Fill in your code here
+        int nextIndex = startIndex;
+        int number = 0;
+        while (inputUnaryCode.get(nextIndex++)) {
+            number++;
+        }
+        numberEndIndex[0] = number;
+        numberEndIndex[1] = nextIndex;
     }
 
     /**
@@ -154,6 +189,13 @@ public class IndexCompression {
     public static int gammaEncodeInteger(int number, BitSet outputGammaCode, int startIndex) {
         int nextIndex = startIndex;
         // TODO: Fill in your code here
+        if (number == 0) return startIndex;
+        int bitCount = (int) (Math.log(number) / Math.log(2));
+        nextIndex = unaryEncodeInteger(bitCount, outputGammaCode, nextIndex);
+        while (bitCount > 0) {
+            if ((number >> (bitCount-- - 1) & 1) == 1) outputGammaCode.set(nextIndex);
+            nextIndex++;
+        }
         return nextIndex;
     }
 
@@ -174,6 +216,15 @@ public class IndexCompression {
      */
     public static void gammaDecodeInteger(BitSet inputGammaCode, int startIndex, int[] numberEndIndex) {
         // TODO: Fill in your code here
+        unaryDecodeInteger(inputGammaCode, startIndex, numberEndIndex);
+        int bitCount = numberEndIndex[0];
+        int nextIndex = numberEndIndex[1];
+        int number = 1;
+        for (int i = 0; i < bitCount; i++, nextIndex++) {
+            number = (number << 1) + (inputGammaCode.get(nextIndex) ? 1 : 0);
+        }
+        numberEndIndex[0] = number;
+        numberEndIndex[1] = nextIndex;
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -308,6 +359,44 @@ public class IndexCompression {
         return stream;
     }
 
+    private static int numOfGapsToSelector(int numOfGaps) {
+        switch (numOfGaps) {
+        case 28:
+            return 0b0000;
+        case 14:
+            return 0b0001;
+        case 9:
+            return 0b0010;
+        case 7:
+            return 0b0011;
+        case 5:
+            return 0b0100;
+        case 4:
+            return 0b0101;
+        case 3:
+            return 0b0110;
+        case 2:
+            return 0b0111;
+        case 1:
+            return 0b1000;
+        default:
+            return 0b1111;
+        }
+    }
+
+    private static int getNumOfGaps(int numOfGaps) {
+        if (numOfGaps >= 28) return 28;
+        if (numOfGaps >= 14) return 14;
+        if (numOfGaps >= 9) return 9;
+        if (numOfGaps >= 7) return 7;
+        if (numOfGaps >= 5) return 5;
+        if (numOfGaps >= 4) return 4;
+        if (numOfGaps >= 3) return 3;
+        if (numOfGaps >= 2) return 2;
+        if (numOfGaps >= 1) return 1;
+        return 0;
+    }
+
     /**
      * Extra blank routine for your own custom encoding of the first num
      * integers in inputs and writes the result to the ByteArrayOutputStream.
@@ -320,6 +409,36 @@ public class IndexCompression {
      */
     public static ByteArrayOutputStream customEncodeOutputStream(int[] inputs, int num) throws IOException {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        for (int i = 0, largestBitCount = 0, numOfGaps = 0; i < num; i++) {
+            int bitCount = (int) Math.ceil(Math.log(inputs[i]) / Math.log(2));
+            if (Math.max(bitCount, largestBitCount) * (numOfGaps + 1) > 28) {
+                numOfGaps = getNumOfGaps(numOfGaps);
+                i -= numOfGaps;
+                int word = numOfGapsToSelector(numOfGaps);
+                for (int j = 0; j < numOfGaps; j++) {
+                    word = (word << (28 / numOfGaps)) | inputs[i++];
+                }
+                ByteBuffer b = ByteBuffer.allocate(4);
+                b.putInt(word);
+                stream.write(b.array());
+                largestBitCount = 0;
+                numOfGaps = 0;
+                continue;
+            }
+            largestBitCount = Math.max(largestBitCount, bitCount);
+            numOfGaps++;
+            if (i == num - 1) {
+                numOfGaps = getNumOfGaps(numOfGaps);
+                i = i - numOfGaps + 1;
+                int word = numOfGapsToSelector(numOfGaps);
+                for (int j = 0; j < numOfGaps; j++) {
+                    word = (word << (28 / numOfGaps)) | (inputs[i++] - 1);
+                }
+                ByteBuffer b = ByteBuffer.allocate(4);
+                b.putInt(word);
+                stream.write(b.array());
+            }
+        }
         return stream;
     }
 
