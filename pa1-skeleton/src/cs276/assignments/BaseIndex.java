@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.nio.channels.FileChannel;
 
 public interface BaseIndex {
+    
+    public static final int INT_BYTES = Integer.SIZE / Byte.SIZE;
 	
 	public PostingList readPosting (FileChannel fc) throws IOException;
 	

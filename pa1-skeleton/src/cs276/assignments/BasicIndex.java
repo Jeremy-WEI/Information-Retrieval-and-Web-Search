@@ -8,8 +8,6 @@ import java.util.List;
 
 public class BasicIndex implements BaseIndex {
 
-    private static final int INT_BYTES = Integer.SIZE / Byte.SIZE;
-
     @Override
     public PostingList readPosting(FileChannel fc) throws IOException {
         ByteBuffer buf = ByteBuffer.allocate(INT_BYTES * 2);
@@ -19,17 +17,17 @@ public class BasicIndex implements BaseIndex {
         int termId = buf.getInt();
         int docFreq = buf.getInt();
 
-        List<Integer> postings = new ArrayList<Integer>(docFreq);
+        List<Integer> docIds = new ArrayList<Integer>(docFreq);
         buf = ByteBuffer.allocate(INT_BYTES * docFreq);
         fc.read(buf);
 
         buf.flip();
         for (int i = 0; i < docFreq; i++) {
-            postings.add(buf.getInt());
+            docIds.add(buf.getInt());
         }
 
-        PostingList posting = new PostingList(termId, postings);
-        return posting;
+        PostingList p = new PostingList(termId, docIds);
+        return p;
     }
 
     @Override
