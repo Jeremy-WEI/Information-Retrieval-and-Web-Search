@@ -134,12 +134,9 @@ public class IndexCompression {
      *         the unary code for number
      */
     public static int unaryEncodeInteger(int number, BitSet outputUnaryCode, int startIndex) {
-        int nextIndex = startIndex;
+        int nextIndex = startIndex + number;
         // TODO: Fill in your code here
-        while (number > 0) {
-            outputUnaryCode.set(nextIndex++);
-            number--;
-        }
+        outputUnaryCode.set(startIndex, nextIndex);
         return nextIndex + 1;
     }
 

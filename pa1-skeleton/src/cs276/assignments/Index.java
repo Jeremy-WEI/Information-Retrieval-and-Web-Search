@@ -114,7 +114,7 @@ public class Index {
                 ++totalFileCount;
                 String fileName = block.getName() + "/" + file.getName();
 
-                int docId = docIdCounter++;
+                int docId = ++docIdCounter;
                 docDict.put(fileName, docId);
 
                 BufferedReader reader = new BufferedReader(new FileReader(file));
