@@ -23,7 +23,7 @@ public class LanguageModel implements Serializable {
     private static final long serialVersionUID = 1L;
     private static LanguageModel lm_;
 
-    private static double lambda = 0.0;
+    private static double lambda = 0.1;
     private Dictionary unigram = new Dictionary();
     private Dictionary bigram = new Dictionary();
 
