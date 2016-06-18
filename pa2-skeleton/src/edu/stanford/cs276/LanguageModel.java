@@ -22,8 +22,8 @@ public class LanguageModel implements Serializable {
 
     private static final long serialVersionUID = 1L;
     private static LanguageModel lm_;
+    private static double lambda = Config.lmSmoothingLambda;
 
-    private static double lambda = 0.1;
     private Dictionary unigram = new Dictionary();
     private Dictionary bigram = new Dictionary();
 
@@ -60,10 +60,6 @@ public class LanguageModel implements Serializable {
             BufferedReader input = new BufferedReader(new FileReader(file));
             String line = null;
             while ((line = input.readLine()) != null) {
-                /*
-                 * Remember: each line is a document (refer to PA2 handout)
-                 * TODO: Your code here
-                 */
                 String[] tokens = line.split("\\s+");
                 for (int i = 0; i < tokens.length - 1; i++) {
                     unigram.add(tokens[i]);
@@ -76,16 +72,25 @@ public class LanguageModel implements Serializable {
         System.out.println("Done.");
     }
 
-    public static void setSmoothingLambda(double lambda) {
-        LanguageModel.lambda = lambda;
-    }
-
     public double getUnigramProb(String term) {
         return (double) unigram.count(term) / unigram.termCount();
     }
 
     public double getBigramProb(String term1, String term2) {
         return lambda * getUnigramProb(term1) + (1 - lambda) * bigram.count(getBigramString(term1, term2)) / unigram.count(term1);
+    }
+
+    public boolean isValidTerm(String term) {
+        return unigram.count(term) > 0;
+    }
+
+    public int noOfInvalidTerms(String query) {
+        int noOfInvalidTerm = 0;
+        String[] terms = query.split("\\s+");
+        for (String term : terms) {
+            if (!isValidTerm(term)) noOfInvalidTerm++;
+        }
+        return noOfInvalidTerm;
     }
 
     /**
@@ -126,12 +131,10 @@ public class LanguageModel implements Serializable {
         return lm_;
     }
 
-    //    public static void main(String[] args) throws Exception {
-    //        //        LanguageModel lm = new LanguageModel("/Users/YunchenWei/Documents/Coursera/IR/pa2-data/corpus");
-    //        LanguageModel.load();
-    //        LanguageModel lm = create("/Users/YunchenWei/Documents/Coursera/IR/pa2-data/corpus");
-    //        System.out.println(lm.getUnigramProb("test"));
-    //        System.out.println(lm.getUnigramProb("i"));
-    //        System.out.println(lm.getBigramProb("i", "want"));
-    //    }
+    //        public static void main(String[] args) throws Exception {
+    //            LanguageModel lm = LanguageModel.load();
+    //            System.out.println(lm.getUnigramProb("test"));
+    //            System.out.println(lm.getUnigramProb("i"));
+    //            System.out.println(lm.getBigramProb("i", "want"));
+    //        }
 }

@@ -8,8 +8,8 @@ package edu.stanford.cs276;
 public class UniformCostModel implements EditCostModel {
 
     private static final long serialVersionUID = 1L;
-    private static final double errorProb = 0.05;
-    private static final double correctProb = 0.95;
+    private static final double errorProb = Config.ucmErrorProb;
+    private static final double correctProb = Config.ucmCorrectProb;
 
     private int getMinimum(int... nums) {
         int min = Integer.MAX_VALUE;
