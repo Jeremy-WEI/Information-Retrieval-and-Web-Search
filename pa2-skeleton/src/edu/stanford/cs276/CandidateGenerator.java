@@ -46,6 +46,7 @@ public class CandidateGenerator implements Serializable {
                 if (i < query.length()) {
                     delete = candidateSb.deleteCharAt(i).toString();
                     replace = candidateSb.insert(i, newC).toString();
+                    candidateSb.setCharAt(i, origC);
                     if (i > 0) {
                         candidateSb.setCharAt(i, candidateSb.charAt(i - 1));
                         candidateSb.setCharAt(i - 1, origC);
@@ -74,7 +75,7 @@ public class CandidateGenerator implements Serializable {
     public static void main(String[] args) throws Exception {
         CandidateGenerator cg = CandidateGenerator.get();
         long startTime = System.nanoTime();
-        System.out.println(cg.getCandidates("i wat apple").size());
+        System.out.println(cg.getCandidates("wat apple").size());
         long endTime = System.nanoTime();
         long duration = (endTime - startTime) / 1000000;  //divide by 1000000 to get milliseconds.
         System.out.println(duration);
