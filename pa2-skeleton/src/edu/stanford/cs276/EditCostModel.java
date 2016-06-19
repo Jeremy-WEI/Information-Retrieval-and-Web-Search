@@ -11,5 +11,5 @@ public interface EditCostModel extends Serializable {
 	 * @param distance
 	 * @return
 	 */
-  public double editProbability(String original, String R, int distance);
+  public double editProbability(String original, String R);
 }

@@ -7,9 +7,12 @@ import java.util.Set;
 public class CandidateGenerator implements Serializable {
 
     private static final long serialVersionUID = 1L;
+    private static final int mu = Config.cgMu;
     private static final int editDistanceLimit = Config.cgEditDistanceLimit;
+
     private static LanguageModel lm_;
     private static CandidateGenerator cg_;
+    private static NoisyChannelModel ncm_;
 
     // Don't use the constructor since this is a Singleton instance
     private CandidateGenerator() {
@@ -19,6 +22,8 @@ public class CandidateGenerator implements Serializable {
         if (cg_ == null) {
             cg_ = new CandidateGenerator();
             lm_ = LanguageModel.load();
+            ncm_ = NoisyChannelModel.load();
+            ncm_.setProbabilityType("uniform");
         }
         return cg_;
     }
@@ -27,9 +32,9 @@ public class CandidateGenerator implements Serializable {
             'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ' ', ',' };
 
     // Generate all candidates for the target query
-    public Set<String> getCandidates(String query) throws Exception {
+    public Set<String> getCandidates(String query) {
         Set<String> candidates = getCandidates(query, editDistanceLimit);
-        if (lm_.noOfInvalidTerms(query) == 0) candidates.add(query);
+        if (lm_.noOfInvalidTerms(query) == 0) candidates.add(query.replaceAll("\\s+", " ").trim());
         return candidates;
     }
 
@@ -57,7 +62,7 @@ public class CandidateGenerator implements Serializable {
                 }
                 for (String candidate : new String[] { insert, delete, replace, transpose }) {
                     if (candidate == null) continue;
-                    possibleCandidates.add(candidate);
+                    possibleCandidates.add(candidate.replaceAll("\\s+", " ").trim());
                 }
             }
         }
@@ -72,13 +77,26 @@ public class CandidateGenerator implements Serializable {
         return candidates;
     }
 
+    public String getBestCandidate(String query) {
+        Set<String> candidates = getCandidates(query);
+        double maxProb = ncm_.editProbability(query, query) * Math.pow(lm_.getQueryProb(query), mu);
+        String bestCandidate = query;
+        for (String candidate : candidates) {
+            double prob = ncm_.editProbability(candidate, query) * Math.pow(lm_.getQueryProb(candidate), mu);
+            if (prob > maxProb) {
+                maxProb = prob;
+                bestCandidate = candidate;
+            }
+        }
+        return bestCandidate;
+    }
+
     public static void main(String[] args) throws Exception {
         CandidateGenerator cg = CandidateGenerator.get();
         long startTime = System.nanoTime();
-        System.out.println(cg.getCandidates("wat apple").size());
+        System.out.println(cg.getBestCandidate("i wat apple"));
         long endTime = System.nanoTime();
         long duration = (endTime - startTime) / 1000000;  //divide by 1000000 to get milliseconds.
         System.out.println(duration);
     }
-
 }

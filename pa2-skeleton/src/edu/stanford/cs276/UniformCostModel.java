@@ -49,7 +49,7 @@ public class UniformCostModel implements EditCostModel {
     }
 
     @Override
-    public double editProbability(String original, String R, int distance) {
+    public double editProbability(String original, String R) {
         if (original.equals(R)) return correctProb;
         int editDistance = editDistance(original, R);
         return Math.pow(errorProb, editDistance);
@@ -57,6 +57,6 @@ public class UniformCostModel implements EditCostModel {
 
     public static void main(String[] args) {
         UniformCostModel ucm = new UniformCostModel();
-        System.out.println(ucm.editProbability("abc", "abcd", 2));
+        System.out.println(ucm.editProbability("abc", "abcd"));
     }
 }

@@ -32,7 +32,7 @@ public class EmpiricalCostModel implements EditCostModel {
 
   // You need to update this to calculate the proper empirical cost
   @Override
-  public double editProbability(String original, String R, int distance) {
+  public double editProbability(String original, String R) {
     return 0.5;
     /*
      * TODO: Your code here

@@ -77,7 +77,7 @@ public class LanguageModel implements Serializable {
     }
 
     public double getBigramProb(String term1, String term2) {
-        return lambda * getUnigramProb(term1) + (1 - lambda) * bigram.count(getBigramString(term1, term2)) / unigram.count(term1);
+        return lambda * getUnigramProb(term2) + (1 - lambda) * bigram.count(getBigramString(term1, term2)) / unigram.count(term1);
     }
 
     public boolean isValidTerm(String term) {
@@ -91,6 +91,16 @@ public class LanguageModel implements Serializable {
             if (!isValidTerm(term)) noOfInvalidTerm++;
         }
         return noOfInvalidTerm;
+    }
+
+    public double getQueryProb(String query) {
+        String[] terms = query.split("\\s+");
+        if (terms.length == 0) return 0.0;
+        double prob = getUnigramProb(terms[0]);
+        for (int i = 1; i < terms.length; i++) {
+            prob *= getBigramProb(terms[i - 1], terms[i]);
+        }
+        return prob;
     }
 
     /**
