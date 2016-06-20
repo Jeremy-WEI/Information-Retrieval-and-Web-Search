@@ -1,6 +1,7 @@
 package edu.stanford.cs276;
 
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -18,6 +19,40 @@ public class CandidateGenerator implements Serializable {
     private CandidateGenerator() {
     }
 
+    private static class CandidateWithProb implements Comparable<CandidateWithProb> {
+        String candidate;
+        double prob;
+
+        public CandidateWithProb(String candidate) {
+            this.candidate = candidate;
+        }
+
+        public CandidateWithProb(String candidate, double prob) {
+            this.candidate = candidate;
+            this.prob = prob;
+        }
+
+        @Override
+        public int compareTo(CandidateWithProb o) {
+            double delta = this.prob - o.prob;
+            if (delta > 0) return 1;
+            if (delta < 0) return -1;
+            return 0;
+        }
+
+        @Override
+        public int hashCode() {
+            return candidate.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (!(obj instanceof CandidateWithProb)) return false;
+            return candidate.equals(((CandidateWithProb) obj).candidate);
+        }
+
+    }
+
     public static CandidateGenerator get() throws Exception {
         if (cg_ == null) {
             cg_ = new CandidateGenerator();
@@ -32,14 +67,16 @@ public class CandidateGenerator implements Serializable {
             'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ' ', ',' };
 
     // Generate all candidates for the target query
-    public Set<String> getCandidates(String query) {
-        Set<String> candidates = getCandidates(query, editDistanceLimit);
-        if (lm_.noOfInvalidTerms(query) == 0) candidates.add(query.replaceAll("\\s+", " ").trim());
+    public Set<CandidateWithProb> getCandidates(String query) {
+        query = query.replaceAll("\\s+", " ").trim();
+        Set<CandidateWithProb> candidates = getCandidates(new CandidateWithProb(query, 1.0), editDistanceLimit);
+        if (lm_.noOfInvalidTerms(query) == 0) candidates.add(new CandidateWithProb(query, ncm_.editProbability(query, query)));
         return candidates;
     }
 
-    private Set<String> getCandidates(String query, int editDistanceLimit) {
-        Set<String> candidates = new HashSet<String>();
+    private Set<CandidateWithProb> getCandidates(CandidateWithProb queryWithProb, int editDistanceLimit) {
+        String query = queryWithProb.candidate;
+        Set<CandidateWithProb> candidatesWithProb = new HashSet<CandidateWithProb>();
         Set<String> possibleCandidates = new HashSet<String>();
         StringBuilder candidateSb = new StringBuilder(query);
         for (int i = 0; i <= query.length(); i++) {
@@ -69,26 +106,27 @@ public class CandidateGenerator implements Serializable {
 
         for (String possibleCandidate : possibleCandidates) {
             int noOfInvalidTerm = lm_.noOfInvalidTerms(possibleCandidate);
-            if (noOfInvalidTerm == 0) candidates.add(possibleCandidate);
-            if (noOfInvalidTerm <= editDistanceLimit - 1 && editDistanceLimit > 1) {
-                candidates.addAll(getCandidates(possibleCandidate, editDistanceLimit - 1));
+            CandidateWithProb candidateWithProb = new CandidateWithProb(possibleCandidate);
+            if (noOfInvalidTerm > editDistanceLimit - 1 || candidatesWithProb.contains(candidateWithProb)) continue;
+            candidateWithProb.prob = queryWithProb.prob * (ncm_.editProbability(possibleCandidate, query));
+            if (noOfInvalidTerm == 0) candidatesWithProb.add(candidateWithProb);
+            if (editDistanceLimit > 1) {
+                Set<CandidateWithProb> nextCandidatesWithProb = getCandidates(candidateWithProb, editDistanceLimit - 1);
+                for (CandidateWithProb nextCandidateWithProb : nextCandidatesWithProb) {
+                    if (!candidatesWithProb.contains(nextCandidatesWithProb)) candidatesWithProb.add(nextCandidateWithProb);
+                }
             }
         }
-        return candidates;
+        return candidatesWithProb;
     }
 
     public String getBestCandidate(String query) {
-        Set<String> candidates = getCandidates(query);
-        double maxProb = ncm_.editProbability(query, query) * Math.pow(lm_.getQueryProb(query), mu);
-        String bestCandidate = query;
-        for (String candidate : candidates) {
-            double prob = ncm_.editProbability(candidate, query) * Math.pow(lm_.getQueryProb(candidate), mu);
-            if (prob > maxProb) {
-                maxProb = prob;
-                bestCandidate = candidate;
-            }
+        Set<CandidateWithProb> candidatesWithProb = getCandidates(query);
+        for (CandidateWithProb candidateWithProb : candidatesWithProb) {
+            candidateWithProb.prob *= lm_.getQueryProb(candidateWithProb.candidate);
         }
-        return bestCandidate;
+        CandidateWithProb bestCandidateWithProb = Collections.max(candidatesWithProb);
+        return bestCandidateWithProb.candidate;
     }
 
     public static void main(String[] args) throws Exception {
