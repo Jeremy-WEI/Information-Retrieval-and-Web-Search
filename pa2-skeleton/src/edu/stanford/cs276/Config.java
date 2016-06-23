@@ -6,7 +6,7 @@ public class Config {
     public static final String candidateGenFile = "candidateGenerator";
 
     public static final int cgEditDistanceLimit = 2;
-    public static final int cgMu = 1;
+    public static final double cgMu = 2;
 
     public static final double lmSmoothingLambda = 0.1;
     public static final double ucmErrorProb = 0.05;

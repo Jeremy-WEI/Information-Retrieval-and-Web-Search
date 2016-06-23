@@ -8,7 +8,7 @@ import java.util.Set;
 public class CandidateGenerator implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    private static final int mu = Config.cgMu;
+    private static final double mu = Config.cgMu;
     private static final int editDistanceLimit = Config.cgEditDistanceLimit;
 
     private static LanguageModel lm_;
