@@ -27,7 +27,6 @@ public class IndexCompression {
      *            into this array!
      */
     public static void gapEncode(int[] inputDocIdsOutputGaps) {
-        // TODO: Fill in your code here
         for (int i = inputDocIdsOutputGaps.length - 1; i > 0; i--) {
             inputDocIdsOutputGaps[i] = inputDocIdsOutputGaps[i] - inputDocIdsOutputGaps[i - 1];
         }
@@ -47,7 +46,6 @@ public class IndexCompression {
      *            into this array.
      */
     public static void gapDecode(int[] inputGapsOutputDocIds) {
-        // TODO: Fill in your code here
         for (int i = 1; i < inputGapsOutputDocIds.length; i++) {
             inputGapsOutputDocIds[i] = inputGapsOutputDocIds[i] + inputGapsOutputDocIds[i - 1];
         }
@@ -67,7 +65,6 @@ public class IndexCompression {
      */
     public static int VBEncodeInteger(int gap, byte[] outputVBCode) {
         int numBytes = 1;
-        // TODO: Fill in your code here
         int tmp = gap;
         while (tmp > 127) {
             tmp >>>= 7;
@@ -101,7 +98,6 @@ public class IndexCompression {
      *             If not a valid variable byte code
      */
     public static void VBDecodeInteger(byte[] inputVBCode, int startIndex, int[] numberEndIndex) {
-        // TODO: Fill in your code here
         int number = 0;
         while (true) {
             number = (number << 7) + (inputVBCode[startIndex] & 0b01111111);
@@ -135,7 +131,6 @@ public class IndexCompression {
      */
     public static int unaryEncodeInteger(int number, BitSet outputUnaryCode, int startIndex) {
         int nextIndex = startIndex;
-        // TODO: Fill in your code here
         while (number > 0) {
             outputUnaryCode.set(nextIndex++);
             number--;
@@ -159,7 +154,6 @@ public class IndexCompression {
      *            unary code.
      */
     public static void unaryDecodeInteger(BitSet inputUnaryCode, int startIndex, int[] numberEndIndex) {
-        // TODO: Fill in your code here
         int nextIndex = startIndex;
         int number = 0;
         while (inputUnaryCode.get(nextIndex++)) {
@@ -188,7 +182,6 @@ public class IndexCompression {
      */
     public static int gammaEncodeInteger(int number, BitSet outputGammaCode, int startIndex) {
         int nextIndex = startIndex;
-        // TODO: Fill in your code here
         if (number == 0) return startIndex;
         int bitCount = (int) (Math.log(number) / Math.log(2));
         nextIndex = unaryEncodeInteger(bitCount, outputGammaCode, nextIndex);
@@ -215,7 +208,6 @@ public class IndexCompression {
      *            gamma code.
      */
     public static void gammaDecodeInteger(BitSet inputGammaCode, int startIndex, int[] numberEndIndex) {
-        // TODO: Fill in your code here
         unaryDecodeInteger(inputGammaCode, startIndex, numberEndIndex);
         int bitCount = numberEndIndex[0];
         int nextIndex = numberEndIndex[1];
