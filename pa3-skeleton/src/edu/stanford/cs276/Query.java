@@ -16,7 +16,7 @@ public class Query {
     * @param query the query String.
     */
 	public Query(String query) {
-		queryWords = new ArrayList<String>(Arrays.asList(query.split(" ")));
+		queryWords = new ArrayList<String>(Arrays.asList(query.toLowerCase().split(" ")));
 	}
 
   /**
